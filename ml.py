@@ -12,6 +12,8 @@ from sklearn.cluster import KMeans
 import xgboost as xgb
 import warnings
 warnings.filterwarnings("ignore")
+from dotenv import load_dotenv
+load_dotenv()  # Loads variables from .env
 
 # --- Load Data ---
 df = pd.read_csv("Webull_Trades_With_Metrics.csv")
