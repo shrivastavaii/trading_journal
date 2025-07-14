@@ -1,31 +1,20 @@
 # data_processor.py
 import pandas as pd
-from sqlalchemy import create_engine
-import os
-from dotenv import load_dotenv
+from clean_data import clean_and_process_data  # We'll modify clean_data.py to expose this function
 
-load_dotenv()
-
-def clean_and_upload(input_csv_path):
-    """Refactored from clean_data.py to return cleaned DataFrame."""
-    # --- Load and Clean ---
-    df = pd.read_csv(input_csv_path)
-    
-    # (Add all your cleaning logic here, e.g., price formatting, datetime conversion)
-    df['Price'] = df['Price'].str.replace(r"[^\d.]", "", regex=True).astype(float)
-    
-    # --- Generate Metrics ---
-    records = []
-    for name, group in df.groupby('Name'):
-        # (Add your trade metric calculations here)
-        records.append({
-            'symbol': group['Symbol'].iloc[0],
-            'pnl': (group['Exit_Price'].mean() - group['Entry_Price'].mean()) * 100
-        })
-    
-    # --- Upload to MySQL ---
-    engine = create_engine(f"mysql+mysqlconnector://{os.getenv('MYSQL_USER')}:{os.getenv('MYSQL_PASSWORD')}@{os.getenv('MYSQL_HOST')}/{os.getenv('MYSQL_DB')}")
-    final_df = pd.DataFrame(records)
-    final_df.to_sql("trades", con=engine, if_exists="append", index=False)
-    
-    return final_df  # Return cleaned data for preview
+def clean_and_save_to_mysql(file_path):
+    """
+    Process uploaded CSV file and save to MySQL
+    Returns cleaned DataFrame for display
+    """
+    try:
+        # Read the uploaded file
+        df = pd.read_csv(file_path)
+        
+        # Process the data using the cleaning logic from clean_data.py
+        df_cleaned = clean_and_process_data(df)
+        
+        return df_cleaned
+        
+    except Exception as e:
+        raise Exception(f"Data processing error: {str(e)}")
