@@ -1,4 +1,4 @@
-# clean_data.py (modified)
+
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -6,15 +6,16 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 import os
 
-# === Load environment variables ===
+# Load environment variables 
 load_dotenv()
 MYSQL_USER = os.getenv("MYSQL_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
 MYSQL_DB = os.getenv("MYSQL_DB", "trading_journal")
 
+
 def clean_and_process_data(df):
-    """Main processing function that can be imported by other modules"""
+    
     # Clean Price and Avg Price
     df['Price'] = df['Price'].astype(str).str.replace(r"[^\d.]", "", regex=True)
     df['Price'] = pd.to_numeric(df['Price'], errors='coerce').round(2)
@@ -27,9 +28,9 @@ def clean_and_process_data(df):
     # Extract base Ticker
     df['Ticker'] = df['Symbol'].str.extract(r'([A-Z]+)')
 
-    # --- Generate Trade Metrics ---
+    # Generate Trade Metrics 
     df['Trade Date'] = df['Placed Time'].dt.strftime("%Y-%m-%d")
-    grouped = df.groupby('Name')  # Do NOT modify Name before this step
+    grouped = df.groupby('Name') 
 
     records = []
 
@@ -73,14 +74,15 @@ def clean_and_process_data(df):
             'time_in_trade_min': round(time_in_trade, 1)
         })
 
-    # Create final DataFrame
+    
     final_df = pd.DataFrame(records)
 
-    # --- Upload to MySQL ---
+    # Upload to MySQL 
     engine = create_engine(f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DB}")
     final_df.to_sql("trades", con=engine, if_exists="append", index=False)
     
     return final_df
+
 
 # This part is only for standalone CSV processing
 if __name__ == "__main__":

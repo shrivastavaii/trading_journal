@@ -26,4 +26,4 @@ with DAG(
         bash_command='python3 /path/to/market_data.py TSLA 5min'
     )
 
-    upload_webull >> fetch_tsla_data  # Run in order
+    upload_webull >> fetch_tsla_data  

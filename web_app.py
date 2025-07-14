@@ -12,11 +12,11 @@ from dotenv import load_dotenv
 from data_processor import clean_and_save_to_mysql
 
 
-# --- Initialize ---
+# Initialize 
 load_dotenv()
-st.set_page_config(layout="wide", page_title="Trading Journal AI")
+st.set_page_config(layout="wide", page_title="Trading Journal")
 
-# --- Database Connections ---
+# Database Connections 
 def get_mysql_connection():
     return mysql.connector.connect(
         host=os.getenv("MYSQL_HOST", "localhost"),
@@ -25,7 +25,7 @@ def get_mysql_connection():
         database=os.getenv("MYSQL_DB", "trading")
     )
 
-# --- DeepSeek AI Query ---
+# DeepSeek AI Query 
 def query_deepseek(prompt):
     headers = {"Authorization": f"Bearer {os.getenv('DEEPSEEK_API_KEY')}"}
     response = requests.post(
@@ -36,7 +36,7 @@ def query_deepseek(prompt):
     )
     return response.json()["choices"][0]["message"]["content"]
 
-# --- ML Analysis ---
+# ML Analysis 
 def run_ml_analysis(df):
     from sklearn.linear_model import LogisticRegression
     from xgboost import XGBClassifier
@@ -65,7 +65,7 @@ def run_ml_analysis(df):
 
 
 
-# --- Market Data Fetching ---
+# Market Data Fetching 
 def fetch_market_data(symbol, interval="1day"):
     """Fetch stock data using Alpha Vantage API"""
     api_key = os.getenv("ALPHA_VANTAGE_API_KEY")
@@ -91,28 +91,36 @@ def fetch_market_data(symbol, interval="1day"):
         st.error(f"Error fetching data: {str(e)}")
         return None
 
-# --- Streamlit UI ---
-st.title("📈 Trading Journal AI")
+# Streamlit UI 
+st.title("📈 Trading Journal")
 st.markdown("Upload trades, fetch market data, and analyze with AI")
 
-# --- File Upload Section ---
+
+# File Upload Section 
 with st.expander("📤 Upload Trade Data", expanded=True):
     uploaded_file = st.file_uploader("Drag & Drop Webull/CSV File", type=["csv"])
-    if uploaded_file:
-        with st.spinner("Processing..."):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
-                tmp.write(uploaded_file.getvalue())
-                tmp_path = tmp.name
+   
+if uploaded_file:
+    with st.spinner("Processing..."):
+        try:
+            # Process and store in MySQL
+            df_cleaned = clean_and_save_to_mysql(tmp_path)
+            
+            # Store in MongoDB
+            from eda_visuals import generate_and_store_plots
+            plots = generate_and_store_plots(df_cleaned)
+            
+            # Also store the raw trades data in MongoDB
+            client = MongoClient("mongodb://localhost:27017/")
+            db = client["trading_journal"]
+            db["trades"].insert_many(df_cleaned.to_dict('records'))
+            
+            st.success("✅ Data stored in both MySQL and MongoDB")
+        except Exception as e:
+            st.error(f"Storage error: {str(e)}")
 
-            try:
-                df_cleaned = clean_and_save_to_mysql(tmp_path)
-                st.success(f"✅ Successfully processed and stored {len(df_cleaned)} trades.")
-                st.dataframe(df_cleaned.head())
-            except Exception as e:
-                st.error(f"Error: {e}")
 
-
-# --- AI Chat Section (Homepage) ---
+# AI Chat Section
 st.header("💬 Ask Your Trading Assistant")
 question = st.text_input(
     "Type your question (e.g., 'What was my best trade last week?')",
@@ -141,7 +149,7 @@ if st.button("Get AI Analysis") and question:
             answer = query_deepseek(prompt)
             st.success(answer)
             
-            # Log to MongoDB
+            # to MongoDB
             MongoClient("mongodb://localhost:27017/")["trading_journal"]["ai_chats"].insert_one({
                 "question": question,
                 "answer": answer,
@@ -149,7 +157,7 @@ if st.button("Get AI Analysis") and question:
             })
 
 
-# --- Market Data Fetch Section ---
+# Market Data Fetch Section 
 with st.expander("📡 Fetch Market Data", expanded=True):
     col1, col2 = st.columns([3,1])
     with col1:
@@ -174,18 +182,17 @@ with st.expander("📡 Fetch Market Data", expanded=True):
                     title=f"{symbol} Price (Last 100 Periods)"
                 ))
 
-# --- Analysis Tabs ---
+# Analysis Tabs 
 tab1, tab2, tab3 = st.tabs(["📊 Visualizations", "🤖 ML Insights", "📡 Market Data"])
 
 
-# In web_app.py (modify the EDA tab section)
+# EDA
 with tab1:
     st.header("Exploratory Analysis")
     conn = get_mysql_connection()
     df_eda = pd.read_sql("SELECT * FROM trades", conn)
     
     if not df_eda.empty:
-        # Import the EDA functions
         from eda_visuals import generate_eda_plots
         
         # Generate all plots
@@ -232,6 +239,7 @@ with tab2:
                 ))
     else:
         st.warning("Upload data to enable ML analysis")
+
 
 # Tab 3: Market Data Explorer
 with tab3:

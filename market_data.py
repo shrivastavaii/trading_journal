@@ -6,10 +6,10 @@ import pandas as pd
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
-# === Load environment variables from .env ===
+
 load_dotenv()
 
-# === Alpha Vantage API Settings ===
+# Alpha Vantage 
 API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 BASE_URL = "https://www.alphavantage.co/query"
 JSON_COL_REMAP = {
@@ -20,7 +20,7 @@ JSON_COL_REMAP = {
     "5. volume": "volume"
 }
 
-# === MySQL Config ===
+# MySQL Config 
 MYSQL_USER = os.getenv("MYSQL_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
 MYSQL_HOST = os.getenv("MYSQL_HOST")
